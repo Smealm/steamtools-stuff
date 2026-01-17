@@ -1,5 +1,4 @@
 
-md
 # Steam NoCloud Script
 
 This PowerShell script automatically updates Steam `sharedconfig.vdf` files for all Steam user profiles on the current machine. It scans your Steam library for installed games and adds them to the `apps` block with `cloudenabled` set to `0`, effectively disabling cloud saves for those apps.
