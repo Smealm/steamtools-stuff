@@ -3,32 +3,25 @@ $steamPath = (Get-ItemProperty "HKCU:\Software\Valve\Steam").SteamPath
 if (-not $steamPath) { Write-Error "Steam path not found in registry."; exit }
 
 # -----------------------------
-# 1. Read libraryfolders.vdf and get App IDs
-# -----------------------------
-$vdfPath = Join-Path $steamPath "config\libraryfolders.vdf"
-if (-not (Test-Path $vdfPath)) { Write-Error "libraryfolders.vdf not found at $vdfPath"; exit }
-
-$content = Get-Content $vdfPath -Raw
-$appIdPattern = '"(\d+)"\s+"\d+"'
-$appIds = [regex]::Matches($content, $appIdPattern) | ForEach-Object { $_.Groups[1].Value }
-
-$totalApps = $appIds.Count
-
-# -----------------------------
-# 2. Check which App IDs have Lua plugins
+# 1. Get App IDs from existing Lua plugins ONLY
 # -----------------------------
 $pluginPath = Join-Path $steamPath "config\stplug-in"
-$luaAppIds = @()
-foreach ($id in $appIds) {
-    if (Test-Path (Join-Path $pluginPath "$id.lua")) {
-        $luaAppIds += $id
-    }
+if (-not (Test-Path $pluginPath)) {
+    Write-Error "stplug-in folder not found at $pluginPath"
+    exit
 }
 
-$luaCount = $luaAppIds.Count
+$luaAppIds = Get-ChildItem -Path $pluginPath -Filter "*.lua" -File |
+    ForEach-Object {
+        if ($_.BaseName -match '^\d+$') {
+            $_.BaseName
+        }
+    }
 
-Write-Output "Total App IDs: $totalApps"
-Write-Output "App IDs with Lua: $luaCount"
+$luaAppIds = $luaAppIds | Sort-Object -Unique
+$luaCount  = $luaAppIds.Count
+
+Write-Output "Lua plugins found: $luaCount"
 
 # -----------------------------
 # 3. Update sharedconfig.vdf, replace or add "apps"
@@ -169,3 +162,4 @@ foreach ($file in $sharedConfigs) {
     # -----------------------------
     Set-Content -Path $file.FullName -Value $content -Encoding UTF8
 }
+
